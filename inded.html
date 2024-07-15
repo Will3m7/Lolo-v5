@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RSSTEST</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>RSSTEST</h1>
+        <form id="addFeedForm">
+            <label for="feedUrl">Feed URL:</label>
+            <input type="url" id="feedUrl" name="feedUrl" required>
+            <label for="category">Category:</label>
+            <input type="text" id="category" name="category" required>
+            <button type="submit">Add Feed</button>
+        </form>
+        <select id="filterSelect">
+            <option value="all">All Categories</option>
+        </select>
+        <div id="feedsContainer" class="feeds-grid"></div>
+    </div>
+
+    <!-- Modal for editing feed -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span id="modalCloseBtn" class="close">&times;</span>
+            <form id="editModalForm">
+                <label for="editFeedUrl">Feed URL:</label>
+                <input type="url" id="editFeedUrl" name="editFeedUrl" readonly>
+                <label for="editCategory">Category:</label>
+                <input type="text" id="editCategory" name="editCategory" required>
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
