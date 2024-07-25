@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RSSTEST</title>
@@ -11,10 +10,8 @@
     <div class="container">
         <h1>RSSTEST</h1>
         <form id="addFeedForm">
-            <label for="feedUrl">Feed URL:</label>
-            <input type="url" id="feedUrl" name="feedUrl" required>
-            <label for="category">Category:</label>
-            <input type="text" id="category" name="category" required>
+            <input type="text" id="feedUrl" placeholder="Feed URL" required>
+            <input type="text" id="category" placeholder="Category" required>
             <button type="submit">Add Feed</button>
         </form>
         <select id="filterSelect">
@@ -23,15 +20,13 @@
         <div id="feedsContainer" class="feeds-grid"></div>
     </div>
 
-    <!-- Modal for editing feed -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span id="modalCloseBtn" class="close">&times;</span>
+    <!-- Edit Feed Modal -->
+    <div id="editModal">
+        <div id="editModalContent">
+            <span id="modalCloseBtn">&times;</span>
             <form id="editModalForm">
-                <label for="editFeedUrl">Feed URL:</label>
-                <input type="url" id="editFeedUrl" name="editFeedUrl" readonly>
-                <label for="editCategory">Category:</label>
-                <input type="text" id="editCategory" name="editCategory" required>
+                <input type="text" id="editFeedUrl" placeholder="Feed URL" required>
+                <input type="text" id="editCategory" placeholder="Category" required>
                 <button type="submit">Save Changes</button>
             </form>
         </div>
