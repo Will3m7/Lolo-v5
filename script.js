@@ -1,5 +1,3 @@
-
-
 document.addEventListener('DOMContentLoaded', function () {
     const addFeedForm = document.getElementById('addFeedForm');
     const feedsContainer = document.getElementById('feedsContainer');
