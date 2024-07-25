@@ -1,3 +1,5 @@
+
+
 document.addEventListener('DOMContentLoaded', function () {
     const addFeedForm = document.getElementById('addFeedForm');
     const feedsContainer = document.getElementById('feedsContainer');
@@ -5,8 +7,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('editModal');
     const modalForm = document.getElementById('editModalForm');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
-    
-    const POSTLIGHT_API_KEY = 'YOUR_POSTLIGHT_PARSER_API_KEY'; // Replace with your Postlight API key
 
     // Initialize feeds from localStorage if available
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
@@ -18,13 +18,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             return data.items.map(item => ({
                 title: item.title,
+                description: item.description,
                 link: item.link,
                 pubDate: item.pubDate,
-                description: item.description,
-                category: item.categories ? item.categories.join(', ') : 'Uncategorized',
-                imageUrl: item.enclosure ? item.enclosure.link : (item['media:content'] ? item['media:content'].url : null),
-                author: item.author,
-                source: item.source,
+                imageUrl: item.enclosure ? item.enclosure.link : (item['media:content'] ? item['media:content'].url : null)
             }));
         } catch (error) {
             console.error('Error fetching RSS feed:', error);
@@ -32,13 +29,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Function to fetch and parse article content using Postlight Parser
+    // Function to fetch and parse article content using Mercury API
     async function fetchArticleContent(url) {
         try {
-            const response = await fetch(`https://mercury.postlight.com/parser?url=${encodeURIComponent(url)}`, {
+            const response = await fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
                 method: 'POST',
                 headers: {
-                    'x-api-key': POSTLIGHT_API_KEY,
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ url: url }),
             });
@@ -48,6 +45,11 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error('Error fetching article content:', error);
             return '<p>Unable to load content.</p>';
         }
+    }
+
+    // Function to save feeds to localStorage
+    function saveFeeds() {
+        localStorage.setItem('feeds', JSON.stringify(feeds));
     }
 
     // Function to render feeds
@@ -66,15 +68,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         return `
                             <li>
                                 <div class="article-header">
-                                    <h4><a href="${item.link}" target="_blank">${item.title} -Feed</a></h4>
-                                    ${item.imageUrl ? `<a href="${item.link}" target="_blank"><img src="${item.imageUrl}" alt="${item.title}" class="article-image"></a>` : ''}
+                                     <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
+                                        <div>
+                                            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
+                                        </div>
                                 </div>
                                 <p>${item.description}</p>
                                 <a href="${item.link}" target="_blank">Read More</a>
                                 <time>${new Date(item.pubDate).toLocaleString()}</time>
                                 <div class="article-content">${content}</div>
-                                <p>Author: ${item.author || 'Unknown'}</p>
-                                <p>Source: ${item.source || 'Unknown'}</p>
                             </li>
                         `;
                     })).then(items => items.join(''))}
@@ -90,8 +92,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to render filter options
     function renderFilterOptions() {
-        const categories = feeds.flatMap(feed => feed.items.map(item => item.category));
-        const uniqueCategories = [...new Set(categories.filter(category => category))]; // Get unique categories and filter out empty ones
+        const categories = feeds.map(feed => feed.category);
+        const uniqueCategories = [...new Set(categories)]; // Get unique categories
 
         filterSelect.innerHTML = `
             <option value="all">All Categories</option>
@@ -191,27 +193,42 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedCategory === 'all') {
             await renderFeeds();
         } else {
-            const filteredFeeds = feeds.flatMap(feed => feed.items.filter(item => item.category.includes(selectedCategory)));
+            const filteredFeeds = feeds.filter(feed => feed.category === selectedCategory);
             feedsContainer.innerHTML = '';
             for (const feed of filteredFeeds) {
                 const feedElement = document.createElement('div');
                 feedElement.classList.add('feed');
 
                 feedElement.innerHTML = `
-                    <div class="article-header">
-                        <h4><a href="${feed.link}" target="_blank">${feed.title} -Feed</a></h4>
-                        ${feed.imageUrl ? `<a href="${feed.link}" target="_blank"><img src="${feed.imageUrl}" alt="${feed.title}" class="article-image"></a>` : ''}
-                    </div>
-                    <p>${feed.description}</p>
-                    <a href="${feed.link}" target="_blank">Read More</a>
-                    <time>${new Date(feed.pubDate).toLocaleString()}</time>
+                    <h3>${feed.category}</h3>
+                    <ul>
+                        ${await Promise.all(feed.items.map(async (item) => {
+                            const content = await fetchArticleContent(item.link);
+                            return `
+                                <li>
+                                    <div class="article-header">
+                                        <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
+                                        ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
+                                    </div>
+                                    <p>${item.description}</p>
+                                    <a href="${item.link}" target="_blank">Read More</a>
+                                    <time>${new Date(item.pubDate).toLocaleString()}</time>
+                                    <div class="article-content">${content}</div>
+                                </li>
+                            `;
+                        })).then(items => items.join(''))}
+                    </ul>
+                    <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
+                    <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
                 `;
+
                 feedsContainer.appendChild(feedElement);
             }
         }
     });
 
-    // Initial render of feeds and filter options
+    // Initial rendering of feeds and filter options
     renderFeeds();
     renderFilterOptions();
+
 });
