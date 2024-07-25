@@ -68,41 +68,41 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to render feeds
     async function renderFeeds() {
-        feedsContainer.innerHTML = '';
-        for (const feed of feeds) {
-            const feedElement = document.createElement('div');
-            feedElement.classList.add('feed');
-    
-            feedElement.innerHTML = `
-                <h3>${feed.category}</h3>
-                <ul>
-                    ${await Promise.all(feed.items.map(async (item) => {
-                        const articleData = await fetchArticleContent(item.link);
-                        return `
-                            <li>
-                                <div class="article-header">
-                                     <h4><a href="${item.link}" target="_blank">${articleData.title || item.title}</a></h4>
-                                        <div>
-                                            ${articleData.lead_image_url ? `<img src="${articleData.lead_image_url}" alt="${articleData.title}" class="article-image">` : ''}
-                                        </div>
-                                </div>
-                                <p>${item.description}</p>
-                                <a href="${item.link}" target="_blank">Read More</a>
-                                <time>${new Date(articleData.date_published || item.pubDate).toLocaleString()}</time>
-                                <div class="article-content">${articleData.content}</div>
-                                ${articleData.author ? `<p>Author: ${articleData.author}</p>` : ''}
-                            </li>
-                        `;
-                    })).then(items => items.join(''))}
-                </ul>
-                <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
-                <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
-            `;
-    
-            feedsContainer.appendChild(feedElement);
-        }
-        saveFeeds(); // Save feeds after rendering
+    feedsContainer.innerHTML = '';
+    for (const feed of feeds) {
+        const feedElement = document.createElement('div');
+        feedElement.classList.add('feed');
+
+        feedElement.innerHTML = `
+            <h3>${feed.category}</h3>
+            <ul>
+                ${await Promise.all(feed.items.map(async (item) => {
+                    const articleData = await fetchArticleContent(item.link);
+                    return `
+                        <li>
+                            <div class="article-header">
+                                 <h4><a href="${item.link}" target="_blank">${articleData.title || item.title}</a></h4>
+                                    <div>
+                                        ${articleData.lead_image_url ? `<img src="${articleData.lead_image_url}" alt="${articleData.title}" class="article-image">` : ''}
+                                    </div>
+                            </div>
+                            <p>${item.description}</p>
+                            <a href="${item.link}" target="_blank">Read More</a>
+                            <time>${new Date(articleData.date_published || item.pubDate).toLocaleString()}</time>
+                            <div class="article-content">${articleData.content}</div>
+                            ${articleData.author ? `<p>Author: ${articleData.author}</p>` : ''}
+                        </li>
+                    `;
+                })).then(items => items.join(''))}
+            </ul>
+            <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
+            <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
+        `;
+
+        feedsContainer.appendChild(feedElement);
     }
+    saveFeeds(); // Save feeds after rendering
+}
 
     // Function to render filter options
     function renderFilterOptions() {
