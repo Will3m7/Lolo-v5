@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
                                     ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
                                 </div>
+                                <p class="article-description">${item.description}</p>
                                 <div class="article-content">${parsedContent}</div>
                                 <a href="${item.link}" target="_blank">Read Full Article</a>
                                 <time>${new Date(item.pubDate).toLocaleString()}</time>
