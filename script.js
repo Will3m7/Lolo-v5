@@ -1,4 +1,4 @@
-const Mercury = require('@postlight/mercury-parser');
+import Parser from '@postlight/parser';
 
 Parser.parse("https://www.err.ee/").then(result => console.log(result));
 console.log("smins");
