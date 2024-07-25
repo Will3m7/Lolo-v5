@@ -1,8 +1,3 @@
-const Mercury = require('@postlight/mercury-parser');
-
-Parser.parse("https://www.err.ee/").then(result => console.log(result));
-console.log("smins");
-
 document.addEventListener('DOMContentLoaded', function () {
     const addFeedForm = document.getElementById('addFeedForm');
     const feedsContainer = document.getElementById('feedsContainer');
@@ -21,10 +16,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const data = await response.json();
             return data.items.map(item => ({
                 title: item.title,
-                description: item.description,
                 link: item.link,
                 pubDate: item.pubDate,
-                imageUrl: item.enclosure ? item.enclosure.link : (item['media:content'] ? item['media:content'].url : null)
+                description: item.description,
+                category: item.categories ? item.categories.join(', ') : 'Uncategorized',
+                imageUrl: item.enclosure ? item.enclosure.link : (item['media:content'] ? item['media:content'].url : null),
+                author: item.author,
+                source: item.source,
             }));
         } catch (error) {
             console.error('Error fetching RSS feed:', error);
@@ -32,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Function to fetch and parse article content using Mercury API
+    // Function to fetch and parse article content using Mercury Web Parser
     async function fetchArticleContent(url) {
         try {
             const response = await fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
@@ -71,15 +69,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         return `
                             <li>
                                 <div class="article-header">
-                                     <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
-                                        <div>
-                                            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
-                                        </div>
+                                    <h4><a href="${item.link}" target="_blank">${item.title} -Feed</a></h4>
+                                    ${item.imageUrl ? `<a href="${item.link}" target="_blank"><img src="${item.imageUrl}" alt="${item.title}" class="article-image"></a>` : ''}
                                 </div>
                                 <p>${item.description}</p>
                                 <a href="${item.link}" target="_blank">Read More</a>
                                 <time>${new Date(item.pubDate).toLocaleString()}</time>
                                 <div class="article-content">${content}</div>
+                                <p>Author: ${item.author || 'Unknown'}</p>
+                                <p>Source: ${item.source || 'Unknown'}</p>
                             </li>
                         `;
                     })).then(items => items.join(''))}
@@ -95,8 +93,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Function to render filter options
     function renderFilterOptions() {
-        const categories = feeds.map(feed => feed.category);
-        const uniqueCategories = [...new Set(categories)]; // Get unique categories
+        const categories = feeds.flatMap(feed => feed.items.map(item => item.category));
+        const uniqueCategories = [...new Set(categories.filter(category => category))]; // Get unique categories and filter out empty ones
 
         filterSelect.innerHTML = `
             <option value="all">All Categories</option>
@@ -196,42 +194,27 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedCategory === 'all') {
             await renderFeeds();
         } else {
-            const filteredFeeds = feeds.filter(feed => feed.category === selectedCategory);
+            const filteredFeeds = feeds.flatMap(feed => feed.items.filter(item => item.category.includes(selectedCategory)));
             feedsContainer.innerHTML = '';
             for (const feed of filteredFeeds) {
                 const feedElement = document.createElement('div');
                 feedElement.classList.add('feed');
 
                 feedElement.innerHTML = `
-                    <h3>${feed.category}</h3>
-                    <ul>
-                        ${await Promise.all(feed.items.map(async (item) => {
-                            const content = await fetchArticleContent(item.link);
-                            return `
-                                <li>
-                                    <div class="article-header">
-                                        <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
-                                        ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
-                                    </div>
-                                    <p>${item.description}</p>
-                                    <a href="${item.link}" target="_blank">Read More</a>
-                                    <time>${new Date(item.pubDate).toLocaleString()}</time>
-                                    <div class="article-content">${content}</div>
-                                </li>
-                            `;
-                        })).then(items => items.join(''))}
-                    </ul>
-                    <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
-                    <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
+                    <div class="article-header">
+                        <h4><a href="${feed.link}" target="_blank">${feed.title} -Feed</a></h4>
+                        ${feed.imageUrl ? `<a href="${feed.link}" target="_blank"><img src="${feed.imageUrl}" alt="${feed.title}" class="article-image"></a>` : ''}
+                    </div>
+                    <p>${feed.description}</p>
+                    <a href="${feed.link}" target="_blank">Read More</a>
+                    <time>${new Date(feed.pubDate).toLocaleString()}</time>
                 `;
-
                 feedsContainer.appendChild(feedElement);
             }
         }
     });
 
-    // Initial rendering of feeds and filter options
+    // Initial render of feeds and filter options
     renderFeeds();
     renderFilterOptions();
-
 });
