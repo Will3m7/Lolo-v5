@@ -1,7 +1,6 @@
-import Parser from '@postlight/parser';
-
 Parser.parse("https://www.err.ee/").then(result => console.log(result));
 console.log("smins");
+
 document.addEventListener('DOMContentLoaded', function () {
     const addFeedForm = document.getElementById('addFeedForm');
     const feedsContainer = document.getElementById('feedsContainer');
