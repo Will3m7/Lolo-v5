@@ -1,120 +1,236 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const addFeedForm = document.getElementById("addFeedForm");
-    const filterSelect = document.getElementById("filterSelect");
-    const feedsContainer = document.getElementById("feedsContainer");
-    const editModal = document.getElementById("editModal");
-    const editModalForm = document.getElementById("editModalForm");
-    const modalCloseBtn = document.getElementById("modalCloseBtn");
-    let feeds = [];
+document.addEventListener('DOMContentLoaded', function () {
+    const addFeedForm = document.getElementById('addFeedForm');
+    const feedsContainer = document.getElementById('feedsContainer');
+    const filterSelect = document.getElementById('filterSelect');
+    const modal = document.getElementById('editModal');
+    const modalForm = document.getElementById('editModalForm');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
 
-    addFeedForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const feedUrl = document.getElementById("feedUrl").value;
-        const category = document.getElementById("category").value;
-        addFeed(feedUrl, category);
-        addFeedForm.reset();
-    });
+    // Initialize feeds from localStorage if available
+    let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
-    filterSelect.addEventListener("change", () => {
-        displayFeeds();
-    });
-
-    modalCloseBtn.addEventListener("click", () => {
-        editModal.style.display = "none";
-    });
-
-    editModalForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-        const feedUrl = document.getElementById("editFeedUrl").value;
-        const category = document.getElementById("editCategory").value;
-        updateFeed(feedUrl, category);
-    });
-
-    function addFeed(feedUrl, category) {
-        feeds.push({ url: feedUrl, category: category });
-        updateFilterOptions();
-        displayFeeds();
-    }
-
-    function removeFeed(feedUrl) {
-        feeds = feeds.filter(feed => feed.url !== feedUrl);
-        updateFilterOptions();
-        displayFeeds();
-    }
-
-    function updateFeed(feedUrl, category) {
-        feeds = feeds.map(feed => {
-            if (feed.url === feedUrl) {
-                return { url: feedUrl, category: category };
-            }
-            return feed;
-        });
-        editModal.style.display = "none";
-        displayFeeds();
-    }
-
-    function updateFilterOptions() {
-        const categories = [...new Set(feeds.map(feed => feed.category))];
-        filterSelect.innerHTML = '<option value="all">All Categories</option>';
-        categories.forEach(category => {
-            const option = document.createElement("option");
-            option.value = category;
-            option.textContent = category;
-            filterSelect.appendChild(option);
-        });
-    }
-
-    async function fetchParsedArticle(url) {
+    // Function to fetch and parse RSS feed
+    async function fetchRSS(url) {
         try {
-            const response = await fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
-            });
-            if (response.ok) {
-                const data = await response.json();
-                return data;
-            } else {
-                console.error('Failed to fetch the parsed article:', response.statusText);
-            }
+            const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+            const data = await response.json();
+            return data.items.map(item => ({
+                title: item.title,
+                description: item.description,
+                link: item.link,
+                pubDate: item.pubDate,
+                imageUrl: item.enclosure ? item.enclosure.link : (item['media:content'] ? item['media:content'].url : null)
+            }));
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error fetching RSS feed:', error);
+            return [];
         }
     }
 
-    async function displayFeeds() {
+    // Function to fetch and parse article content using Mercury API
+    async function fetchArticleContent(url) {
+        try {
+            const response = await fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: url }),
+            });
+            const data = await response.json();
+            
+            // Check if the parser returned content
+            if (data.content) {
+                return data.content;
+            } else {
+                console.warn('Mercury API returned no content for:', url);
+                return '<p>No content available for this article.</p>';
+            }
+        } catch (error) {
+            console.error('Error fetching article content:', error);
+            return '<p>Unable to load content.</p>';
+        }
+    }
+
+    // Function to save feeds to localStorage
+    function saveFeeds() {
+        localStorage.setItem('feeds', JSON.stringify(feeds));
+    }
+
+    // Function to render feeds
+    async function renderFeeds() {
         feedsContainer.innerHTML = '';
-        const filter = filterSelect.value;
-        const filteredFeeds = filter === 'all' ? feeds : feeds.filter(feed => feed.category === filter);
+        for (const feed of feeds) {
+            const feedElement = document.createElement('div');
+            feedElement.classList.add('feed');
+    
+            feedElement.innerHTML = `
+                <h3>${feed.category}</h3>
+                <ul>
+                    ${await Promise.all(feed.items.map(async (item) => {
+                        const parsedContent = await fetchArticleContent(item.link);
+                        return `
+                            <li>
+                                <div class="article-header">
+                                    <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
+                                    ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
+                                </div>
+                                <p class="article-description">${item.description}</p>
+                                <div class="article-content">${parsedContent}</div>
+                                <a href="${item.link}" target="_blank">Read Full Article</a>
+                                <time>${new Date(item.pubDate).toLocaleString()}</time>
+                            </li>
+                        `;
+                    })).then(items => items.join(''))}
+                </ul>
+                <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
+                <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
+            `;
+    
+            feedsContainer.appendChild(feedElement);
+        }
+        saveFeeds();
+    }
 
-        for (const feed of filteredFeeds) {
-            const articleData = await fetchParsedArticle(feed.url);
-            if (articleData) {
-                const feedElement = document.createElement("div");
-                feedElement.className = "feed";
+    // Function to render filter options
+    function renderFilterOptions() {
+        const categories = feeds.map(feed => feed.category);
+        const uniqueCategories = [...new Set(categories)]; // Get unique categories
 
-                const articleElement = document.createElement("li");
-                articleElement.innerHTML = `
-                    <h3>${articleData.title}</h3>
-                    <time>${new Date(articleData.date_published).toLocaleString()}</time>
-                    <a href="${articleData.url}" target="_blank">Read more</a>
-                    <div class="article-content">${articleData.content}</div>
+        filterSelect.innerHTML = `
+            <option value="all">All Categories</option>
+            ${uniqueCategories.map(category => `
+                <option value="${category}">${category}</option>
+            `).join('')}
+        `;
+    }
+
+    // Function to open edit modal with existing feed details
+    function openEditModal(feedUrl, category) {
+        modal.style.display = 'block';
+        modalForm.dataset.url = feedUrl;
+        document.getElementById('editFeedUrl').value = feedUrl;
+        document.getElementById('editCategory').value = category;
+    }
+
+    // Function to close edit modal
+    function closeEditModal() {
+        modal.style.display = 'none';
+    }
+
+    // Event listener for form submission to add or edit feed
+    addFeedForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const feedUrl = document.getElementById('feedUrl').value.trim();
+        const category = document.getElementById('category').value.trim();
+
+        if (feedUrl && category) {
+            const items = await fetchRSS(feedUrl);
+            const existingFeedIndex = feeds.findIndex(feed => feed.url === feedUrl);
+
+            if (existingFeedIndex !== -1) {
+                // Edit existing feed
+                feeds[existingFeedIndex] = { url: feedUrl, category: category, items: items };
+            } else {
+                // Add new feed
+                feeds.push({ url: feedUrl, category: category, items: items });
+            }
+
+            await renderFeeds();
+            renderFilterOptions();
+            addFeedForm.reset();
+        } else {
+            alert('Please provide both a feed URL and a category.');
+        }
+    });
+
+    // Event delegation for removing or editing feeds
+    feedsContainer.addEventListener('click', async function (event) {
+        const target = event.target;
+        if (target.classList.contains('remove-feed')) {
+            const urlToRemove = target.getAttribute('data-url');
+            feeds = feeds.filter(feed => feed.url !== urlToRemove);
+            await renderFeeds();
+            renderFilterOptions();
+        } else if (target.classList.contains('edit-feed')) {
+            const urlToEdit = target.getAttribute('data-url');
+            const feedToEdit = feeds.find(feed => feed.url === urlToEdit);
+            if (feedToEdit) {
+                openEditModal(feedToEdit.url, feedToEdit.category);
+            }
+        }
+    });
+
+    // Event listener for editing feed in modal
+    modalForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const feedUrl = modalForm.dataset.url;
+        const newFeedUrl = document.getElementById('editFeedUrl').value.trim();
+        const newCategory = document.getElementById('editCategory').value.trim();
+
+        if (newFeedUrl && newCategory) {
+            const items = await fetchRSS(newFeedUrl);
+            const existingFeedIndex = feeds.findIndex(feed => feed.url === feedUrl);
+
+            if (existingFeedIndex !== -1) {
+                // Update existing feed
+                feeds[existingFeedIndex] = { url: newFeedUrl, category: newCategory, items: items };
+                closeEditModal();
+                await renderFeeds();
+                renderFilterOptions();
+            }
+        } else {
+            alert('Please provide both a feed URL and a category.');
+        }
+    });
+
+    // Event listener to close modal
+    modalCloseBtn.addEventListener('click', function () {
+        closeEditModal();
+    });
+
+    // Event listener for filtering articles based on category
+    filterSelect.addEventListener('change', async function () {
+        const selectedCategory = filterSelect.value;
+        if (selectedCategory === 'all') {
+            await renderFeeds();
+        } else {
+            const filteredFeeds = feeds.filter(feed => feed.category === selectedCategory);
+            feedsContainer.innerHTML = '';
+            for (const feed of filteredFeeds) {
+                const feedElement = document.createElement('div');
+                feedElement.classList.add('feed');
+
+                feedElement.innerHTML = `
+                    <h3>${feed.category}</h3>
+                    <ul>
+                        ${await Promise.all(feed.items.map(async (item) => {
+                            const content = await fetchArticleContent(item.link);
+                            return `
+                                <li>
+                                    <div class="article-header">
+                                        <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
+                                        ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
+                                    </div>
+                                    <p>${item.description}</p>
+                                    <a href="${item.link}" target="_blank">Read More</a>
+                                    <time>${new Date(item.pubDate).toLocaleString()}</time>
+                                    <div class="article-content">${content}</div>
+                                </li>
+                            `;
+                        })).then(items => items.join(''))}
+                    </ul>
+                    <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
+                    <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
                 `;
-
-                feedElement.appendChild(articleElement);
-
-                const removeButton = document.createElement("button");
-                removeButton.className = "remove-feed";
-                removeButton.textContent = "Remove";
-                removeButton.addEventListener("click", () => removeFeed(feed.url));
-
-                feedElement.appendChild(removeButton);
 
                 feedsContainer.appendChild(feedElement);
             }
         }
-    }
+    });
 
-    // Initial call to display feeds
-    displayFeeds();
+    // Initial rendering of feeds and filter options
+    renderFeeds();
+    renderFilterOptions();
+
 });
