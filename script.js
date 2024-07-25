@@ -218,3 +218,17 @@ document.addEventListener('DOMContentLoaded', function () {
     renderFeeds();
     renderFilterOptions();
 });
+
+fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      url: 'https://www.theverge.com/tech'
+    })
+  })
+  .then(response => response.json())
+  .then(data => console.log(data))
+  .catch(error => console.error('Error:', error));
+  
