@@ -38,7 +38,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify({ url: url }),
             });
             const data = await response.json();
-            return data.content;
+            
+            // Check if the parser returned content
+            if (data.content) {
+                return data.content;
+            } else {
+                console.warn('Mercury API returned no content for:', url);
+                return '<p>No content available for this article.</p>';
+            }
         } catch (error) {
             console.error('Error fetching article content:', error);
             return '<p>Unable to load content.</p>';
@@ -56,25 +63,21 @@ document.addEventListener('DOMContentLoaded', function () {
         for (const feed of feeds) {
             const feedElement = document.createElement('div');
             feedElement.classList.add('feed');
-
-            // Display feed information
+    
             feedElement.innerHTML = `
                 <h3>${feed.category}</h3>
                 <ul>
                     ${await Promise.all(feed.items.map(async (item) => {
-                        const content = await fetchArticleContent(item.link);
+                        const parsedContent = await fetchArticleContent(item.link);
                         return `
                             <li>
                                 <div class="article-header">
-                                     <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
-                                        <div>
-                                            ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
-                                        </div>
+                                    <h4><a href="${item.link}" target="_blank">${item.title}</a></h4>
+                                    ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.title}" class="article-image">` : ''}
                                 </div>
-                                <p>${item.description}</p>
-                                <a href="${item.link}" target="_blank">Read More</a>
+                                <div class="article-content">${parsedContent}</div>
+                                <a href="${item.link}" target="_blank">Read Full Article</a>
                                 <time>${new Date(item.pubDate).toLocaleString()}</time>
-                                <div class="article-content">${content}</div>
                             </li>
                         `;
                     })).then(items => items.join(''))}
@@ -82,10 +85,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
                 <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
             `;
-
+    
             feedsContainer.appendChild(feedElement);
         }
-        saveFeeds(); // Save feeds after rendering
+        saveFeeds();
     }
 
     // Function to render filter options

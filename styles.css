@@ -261,4 +261,24 @@ button:hover {
     cursor: pointer;
 }
 
+.article-content {
+    margin-top: 15px;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #333;
+}
 
+.article-content img {
+    max-width: 100%;
+    height: auto;
+    margin: 10px 0;
+}
+
+.article-content h1, .article-content h2, .article-content h3 {
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.article-content p {
+    margin-bottom: 15px;
+}
