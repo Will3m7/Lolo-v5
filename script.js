@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
     renderFilterOptions();
 });
 
-fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
+fetch('https://lolo-v5-ebon.vercel.app/webparser', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -231,4 +231,5 @@ fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
   .then(response => response.json())
   .then(data => console.log(data))
   .catch(error => console.error('Error:', error));
+  
   
