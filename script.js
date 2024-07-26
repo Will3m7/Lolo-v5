@@ -231,3 +231,31 @@ fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
   .then(response => response.json())
   .then(data => console.log(data))
   .catch(error => console.error('Error:', error));
+
+async function fetchArticleContent(url) {
+    try {
+        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+        const targetUrl = 'https://uptime-mercury-api.azurewebsites.net/webparser';
+        const response = await fetch(proxyUrl + targetUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url: url }),
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return data.content;
+    } catch (error) {
+        console.error('Error fetching article content:', error);
+        return '<p>Unable to load content.</p>';
+    }
+}
+
+// Example usage
+fetchArticleContent('https://www.theverge.com/tech')
+    .then(content => console.log(content));
