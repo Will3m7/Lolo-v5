@@ -231,5 +231,5 @@ fetch('https://lolo-v5-ebon.vercel.app/webparser', {
   .then(response => response.json())
   .then(data => console.log(data))
   .catch(error => console.error('Error:', error));
-  
+ 
   
