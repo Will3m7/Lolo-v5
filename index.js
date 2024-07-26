@@ -4,6 +4,10 @@ const app = express();
 
 app.use(express.json());
 
+app.get('/', (req, res) => {
+  res.send('Proxy server is running');
+});
+
 app.post('/api/webparser', async (req, res) => {
   const { url } = req.body;
   try {
