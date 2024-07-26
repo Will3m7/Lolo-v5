@@ -20,6 +20,7 @@ app.post('/api/webparser', async (req, res) => {
     });
     const data = await response.json();
     res.json(data);
+    then(data => console.log(data))
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
   }
