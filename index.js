@@ -25,17 +25,4 @@ app.post('/api/webparser', async (req, res) => {
   }
 });
 
-fetch('https://lolo-v5-ebon.vercel.app/webparser', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      url: 'https://www.theverge.com/tech'
-    })
-  })
-  .then(response => response.json())
-  .then(data => console.log(data))
-  .catch(error => console.error('Error:', error));
-  
 module.exports = app;
