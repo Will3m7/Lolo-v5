@@ -9,20 +9,30 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize feeds from localStorage if available
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
-    // Function to fetch and parse RSS feed
+    // Function to fetch and parse RSS feed using xml2js
     async function fetchRSS(url) {
         try {
-            const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
-            const data = await response.json();
-            return data.items.map(item => ({
-                title: item.title,
-                link: item.link,
-                pubDate: item.pubDate,
-                description: item.description,
-                category: item.categories ? item.categories.join(', ') : 'Uncategorized',
-                imageUrl: item.enclosure ? item.enclosure.link : (item['media:content'] ? item['media:content'].url : null),
-                author: item.author,
-                source: item.source,
+            // Fetch the RSS feed as XML
+            const response = await fetch(url);
+            const rssXml = await response.text();
+
+            // Parse the XML to JSON
+            const parser = new xml2js.Parser();
+            const rssData = await parser.parseStringPromise(rssXml);
+
+            // Extract items from RSS feed
+            const items = rssData.rss.channel[0].item || [];
+
+            // Process each item
+            return items.map(item => ({
+                title: item.title[0],
+                link: item.link[0],
+                pubDate: item.pubDate ? item.pubDate[0] : 'Unknown',
+                description: item.description[0],
+                category: item.category ? item.category.join(', ') : 'Uncategorized',
+                imageUrl: item.enclosure ? item.enclosure[0].$.url : (item['media:content'] ? item['media:content'][0].$.url : null),
+                author: item.author ? item.author[0] : 'Unknown',
+                source: item.source ? item.source[0]._ : 'Unknown',
             }));
         } catch (error) {
             console.error('Error fetching RSS feed:', error);
@@ -218,44 +228,3 @@ document.addEventListener('DOMContentLoaded', function () {
     renderFeeds();
     renderFilterOptions();
 });
-
-fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      url: 'https://www.theverge.com/tech'
-    })
-  })
-  .then(response => response.json())
-  .then(data => console.log(data))
-  .catch(error => console.error('Error:', error));
-
-async function fetchArticleContent(url) {
-    try {
-        const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-        const targetUrl = 'https://uptime-mercury-api.azurewebsites.net/webparser';
-        const response = await fetch(proxyUrl + targetUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: url }),
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data.content;
-    } catch (error) {
-        console.error('Error fetching article content:', error);
-        return '<p>Unable to load content.</p>';
-    }
-}
-
-// Example usage
-fetchArticleContent('https://www.theverge.com/tech')
-    .then(content => console.log(content));
