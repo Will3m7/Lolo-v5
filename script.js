@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to fetch and parse article content using Mercury Web Parser
     async function fetchArticleContent(url) {
         try {
-            const response = await fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
+            const response = await fetch('https://proxyserver-bice.vercel.app/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
