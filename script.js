@@ -9,32 +9,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize feeds from localStorage if available
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
-    // Function to fetch and parse RSS feed
-    async function fetchRSS(url) {
-        try {
-            const response = await fetch(url);
-            const text = await response.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(text, 'text/xml');
-            const items = xmlDoc.getElementsByTagName('item');
-            return Array.from(items).map(item => ({
-                title: item.getElementsByTagName('title')[0].textContent,
-                link: item.getElementsByTagName('link')[0].textContent,
-                pubDate: item.getElementsByTagName('pubDate')[0].textContent,
-                description: item.getElementsByTagName('description')[0].textContent,
-                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
-                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || null,
-                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
-                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
-            }));
-        } catch (error) {
-            console.error('Error fetching RSS feed:', error);
-            return [];
-        }
-    }
-
-    // Function to fetch and parse article content using Mercury API
-    async function fetchArticleContent(url) {
+    // Function to fetch and parse RSS feed and article content
+    async function fetchAndParseRSS(url) {
         try {
             const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
                 method: 'POST',
@@ -49,10 +25,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             const data = await response.json();
-            return data.content; // Return the cleaned-up content
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data.content, 'text/xml');
+            const items = xmlDoc.getElementsByTagName('item');
+
+            return Array.from(items).map(item => ({
+                title: item.getElementsByTagName('title')[0].textContent,
+                link: item.getElementsByTagName('link')[0].textContent,
+                pubDate: item.getElementsByTagName('pubDate')[0].textContent,
+                description: item.getElementsByTagName('description')[0].textContent,
+                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
+                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || null,
+                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
+                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
+            }));
         } catch (error) {
-            console.error('Error fetching article content:', error);
-            return '<p>Unable to load content.</p>';
+            console.error('Error fetching RSS feed:', error);
+            return [];
         }
     }
 
@@ -72,23 +61,19 @@ document.addEventListener('DOMContentLoaded', function () {
             feedElement.innerHTML = `
                 <h3>${feed.category}</h3>
                 <ul>
-                    ${await Promise.all(feed.items.map(async (item) => {
-                        const content = await fetchArticleContent(item.link);
-                        return `
-                            <li>
-                                <div class="article-header">
-                                    <h4><a href="${item.link}" target="_blank">${item.title} -Feed</a></h4>
-                                    ${item.imageUrl ? `<a href="${item.link}" target="_blank"><img src="${item.imageUrl}" alt="${item.title}" class="article-image"></a>` : ''}
-                                </div>
-                                <p>${item.description}</p>
-                                <a href="${item.link}" target="_blank">Read More</a>
-                                <time>${new Date(item.pubDate).toLocaleString()}</time>
-                                <div class="article-content">${content}</div>
-                                <p>Author: ${item.author}</p>
-                                <p>Source: ${item.source}</p>
-                            </li>
-                        `;
-                    })).then(items => items.join(''))}
+                    ${feed.items.map(item => `
+                        <li>
+                            <div class="article-header">
+                                <h4><a href="${item.link}" target="_blank">${item.title} -Feed</a></h4>
+                                ${item.imageUrl ? `<a href="${item.link}" target="_blank"><img src="${item.imageUrl}" alt="${item.title}" class="article-image"></a>` : ''}
+                            </div>
+                            <p>${item.description}</p>
+                            <a href="${item.link}" target="_blank">Read More</a>
+                            <time>${new Date(item.pubDate).toLocaleString()}</time>
+                            <p>Author: ${item.author}</p>
+                            <p>Source: ${item.source}</p>
+                        </li>
+                    `).join('')}
                 </ul>
                 <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
                 <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
@@ -132,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const category = document.getElementById('category').value.trim();
 
         if (feedUrl && category) {
-            const items = await fetchRSS(feedUrl);
+            const items = await fetchAndParseRSS(feedUrl);
             const existingFeedIndex = feeds.findIndex(feed => feed.url === feedUrl);
 
             if (existingFeedIndex !== -1) {
@@ -176,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const newCategory = document.getElementById('editCategory').value.trim();
 
         if (newFeedUrl && newCategory) {
-            const items = await fetchRSS(newFeedUrl);
+            const items = await fetchAndParseRSS(newFeedUrl);
             const existingFeedIndex = feeds.findIndex(feed => feed.url === feedUrl);
 
             if (existingFeedIndex !== -1) {
@@ -197,34 +182,20 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Event listener for filtering articles based on category
-    filterSelect.addEventListener('change', async function () {
+    filterSelect.addEventListener('change', function () {
         const selectedCategory = filterSelect.value;
-        if (selectedCategory === 'all') {
-            await renderFeeds();
-        } else {
-            const filteredFeeds = feeds.flatMap(feed => feed.items.filter(item => item.category.includes(selectedCategory)));
-            feedsContainer.innerHTML = '';
-            for (const item of filteredFeeds) {
-                const content = await fetchArticleContent(item.link);
-                const feedElement = document.createElement('div');
-                feedElement.classList.add('feed');
-
-                feedElement.innerHTML = `
-                    <div class="article-header">
-                        <h4><a href="${item.link}" target="_blank">${item.title} -Feed</a></h4>
-                        ${item.imageUrl ? `<a href="${item.link}" target="_blank"><img src="${item.imageUrl}" alt="${item.title}" class="article-image"></a>` : ''}
-                    </div>
-                    <p>${item.description}</p>
-                    <a href="${item.link}" target="_blank">Read More</a>
-                    <time>${new Date(item.pubDate).toLocaleString()}</time>
-                    <div class="article-content">${content}</div>
-                    <p>Author: ${item.author}</p>
-                    <p>Source: ${item.source}</p>
-                `;
-
-                feedsContainer.appendChild(feedElement);
-            }
-        }
+        const feedElements = feedsContainer.querySelectorAll('.feed');
+        feedElements.forEach(feedElement => {
+            const items = feedElement.querySelectorAll('li');
+            items.forEach(item => {
+                const category = item.querySelector('.category')?.textContent;
+                if (selectedCategory === 'all' || category === selectedCategory) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
     });
 
     // Initial render of feeds and filter options
