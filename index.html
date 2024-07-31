@@ -7,32 +7,36 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>RSSTEST</h1>
-        <form id="addFeedForm">
-            <input type="text" id="feedUrl" placeholder="Feed URL" required>
-            <input type="text" id="category" placeholder="Category" required>
-            <button type="submit">Add Feed</button>
-        </form>
-        <select id="filterSelect">
-            <option value="all">All Categories</option>
-        </select>
-        <div id="feedsContainer" class="feeds-grid"></div>
-    </div>
+    <h1>RSSTEST</h1>
+
+    <form id="addFeedForm">
+        <label for="feedUrl">Feed URL:</label>
+        <input type="url" id="feedUrl" name="feedUrl" required>
+        <label for="category">Category:</label>
+        <input type="text" id="category" name="category" required>
+        <button type="submit">Add Feed</button>
+    </form>
+
+    <select id="filterSelect">
+        <option value="all">All Categories</option>
+    </select>
+
+    <div id="feedsContainer"></div>
 
     <!-- Edit Feed Modal -->
-    <div id="editModal">
-        <div id="editModalContent">
-            <span id="modalCloseBtn">&times;</span>
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span id="modalCloseBtn" class="close">&times;</span>
             <form id="editModalForm">
-                <input type="text" id="editFeedUrl" placeholder="Feed URL" required>
-                <input type="text" id="editCategory" placeholder="Category" required>
+                <label for="editFeedUrl">Feed URL:</label>
+                <input type="url" id="editFeedUrl" name="editFeedUrl" required>
+                <label for="editCategory">Category:</label>
+                <input type="text" id="editCategory" name="editCategory" required>
                 <button type="submit">Save Changes</button>
             </form>
         </div>
     </div>
 
     <script src="script.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xml2js/0.4.23/xml2js.min.js"></script>
 </body>
 </html>
