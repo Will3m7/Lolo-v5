@@ -1,4 +1,3 @@
-import cors from 'cors';
 document.addEventListener('DOMContentLoaded', function () {
     const addFeedForm = document.getElementById('addFeedForm');
     const feedsContainer = document.getElementById('feedsContainer');
@@ -6,8 +5,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('editModal');
     const modalForm = document.getElementById('editModalForm');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
-    
-    app.use(cors());
 
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
