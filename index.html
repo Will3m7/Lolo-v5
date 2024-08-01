@@ -3,29 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lolo v5</title>
+    <title>RSS Feed Reader</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Lolo v5</h1>
+        <h1>RSS Feed Reader</h1>
     </header>
-    
+
     <main>
         <section id="addFeedSection">
             <h2>Add New Feed</h2>
             <form id="addFeedForm">
-                <input type="url" id="feedUrl" placeholder="Feed URL" required>
-                <input type="text" id="category" placeholder="Category" required>
+                <input type="url" id="feedUrl" placeholder="Enter RSS feed URL" required>
+                <input type="text" id="category" placeholder="Enter category" required>
                 <button type="submit">Add Feed</button>
             </form>
         </section>
 
         <section id="filterSection">
-            <h2>Filter by Category</h2>
-            <select id="filterSelect">
-                <option value="all">All Categories</option>
-            </select>
+            <label for="filterSelect">Filter by category:</label>
+            <select id="filterSelect"></select>
         </section>
 
         <section id="feedsContainer"></section>
@@ -40,56 +38,16 @@
 
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <span class="close" id="editModalClose">&times;</span>
+            <span class="close">&times;</span>
             <h2>Edit Feed</h2>
             <form id="editFeedForm">
-                <input type="url" id="editFeedUrl" placeholder="Feed URL" required>
-                <input type="text" id="editCategory" placeholder="Category" required>
-                <button type="submit">Save Changes</button>
+                <input type="url" id="editFeedUrl" placeholder="Enter new RSS feed URL" required>
+                <input type="text" id="editCategory" placeholder="Enter new category" required>
+                <button type="submit">Update Feed</button>
             </form>
         </div>
     </div>
 
     <script src="script.js"></script>
 </body>
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RSSTEST</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>RSSTEST</h1>
-        <form id="addFeedForm">
-            <label for="feedUrl">Feed URL:</label>
-            <input type="url" id="feedUrl" name="feedUrl" required>
-            <label for="category">Category:</label>
-            <input type="text" id="category" name="category" required>
-            <button type="submit">Add Feed</button>
-        </form>
-        <select id="filterSelect">
-            <option value="all">All Categories</option>
-        </select>
-        <div id="feedsContainer" class="feeds-grid"></div>
-    </div>
-
-    <!-- Modal for editing feed -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span id="modalCloseBtn" class="close">&times;</span>
-            <form id="editModalForm">
-                <label for="editFeedUrl">Feed URL:</label>
-                <input type="url" id="editFeedUrl" name="editFeedUrl" readonly>
-                <label for="editCategory">Category:</label>
-                <input type="text" id="editCategory" name="editCategory" required>
-                <button type="submit">Save Changes</button>
-            </form>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
-</body>
-
 </html>
