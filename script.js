@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const data = await response.json();
             const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data.content, 'text/xml');
+            const xmlDoc = parser.parseFromString(data.content, 'text/html');
             const items = xmlDoc.getElementsByTagName('item');
 
             return Array.from(items).map(item => ({
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 pubDate: item.getElementsByTagName('pubDate')[0].textContent,
                 description: item.getElementsByTagName('description')[0].textContent,
                 category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
-                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || null,
+                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || data.lead_image_url,
                 author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
                 source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
             }));
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <h4><a href="${item.link}" target="_blank">${item.title} -Feed</a></h4>
                                 ${item.imageUrl ? `<a href="${item.link}" target="_blank"><img src="${item.imageUrl}" alt="${item.title}" class="article-image"></a>` : ''}
                             </div>
-                            <p>${item.description}</p>
+                            <p>${item.description || item.excerpt}</p>
                             <a href="${item.link}" target="_blank">Read More</a>
                             <time>${new Date(item.pubDate).toLocaleString()}</time>
                             <p>Author: ${item.author}</p>
