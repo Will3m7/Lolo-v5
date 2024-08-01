@@ -16,20 +16,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/xml', // Ensure server knows to return XML
                 },
                 body: JSON.stringify({ url: url }),
             });
-    
+
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-    
+
             const data = await response.text(); // Expect raw text for RSS feeds
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(data, 'application/xml'); // Use 'application/xml' for RSS
-    
+
             const items = xmlDoc.getElementsByTagName('item');
-    
+
             return Array.from(items).map(item => ({
                 title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
                 link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
@@ -45,7 +46,6 @@ document.addEventListener('DOMContentLoaded', function () {
             return [];
         }
     }
-    
 
     // Function to save feeds to localStorage
     function saveFeeds() {
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <h4><a href="${item.link}" target="_blank">${item.title} -Feed</a></h4>
                                 ${item.imageUrl ? `<a href="${item.link}" target="_blank"><img src="${item.imageUrl}" alt="${item.title}" class="article-image"></a>` : ''}
                             </div>
-                            <p>${item.description || item.excerpt}</p>
+                            <p>${item.description}</p>
                             <a href="${item.link}" target="_blank">Read More</a>
                             <time>${new Date(item.pubDate).toLocaleString()}</time>
                             <p>Author: ${item.author}</p>
