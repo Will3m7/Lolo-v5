@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to fetch and parse RSS feed and article content
     async function fetchAndParseRSS(url) {
         try {
-            const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
+            const response = await fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
