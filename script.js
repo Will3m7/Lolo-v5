@@ -9,19 +9,22 @@ document.addEventListener('DOMContentLoaded', function () {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
     // Function to fetch and parse RSS feed
-    async function fetchRSS(url) {
+    async function fetchRSSFeed(url) {
         try {
-            const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
-            const data = await response.json();
-            return data.items.map(item => ({
-                title: item.title,
-                link: item.link,
-                pubDate: item.pubDate,
-                description: item.description,
-                category: item.categories ? item.categories.join(', ') : 'Uncategorized',
-                imageUrl: item.enclosure ? item.enclosure.link : (item['media:content'] ? item['media:content'].url : null),
-                author: item.author,
-                source: item.source,
+            const response = await fetch(url);
+            const text = await response.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(text, 'application/xml');
+            const items = xmlDoc.getElementsByTagName('item');
+            return Array.from(items).map(item => ({
+                title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
+                link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
+                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
+                description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
+                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
+                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
+                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
+                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
             }));
         } catch (error) {
             console.error('Error fetching RSS feed:', error);
