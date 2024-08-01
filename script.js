@@ -16,33 +16,52 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/xml', // Ensure server knows to return XML
+                    'Accept': 'application/xml, text/html',
                 },
                 body: JSON.stringify({ url: url }),
             });
-
+    
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-
-            const data = await response.text(); // Expect raw text for RSS feeds
+    
+            const data = await response.text();
             const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data, 'application/xml'); // Use 'application/xml' for RSS
-
-            const items = xmlDoc.getElementsByTagName('item');
-
-            return Array.from(items).map(item => ({
-                title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
-                link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
-                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
-                description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
-                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
-                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
-                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
-                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
+            let doc;
+    
+            // Try parsing as XML first
+            try {
+                doc = parser.parseFromString(data, 'application/xml');
+                if (doc.documentElement.nodeName === "parsererror") {
+                    throw new Error("Not valid XML");
+                }
+            } catch (e) {
+                // If not XML, parse as HTML
+                doc = parser.parseFromString(data, 'text/html');
+            }
+    
+            // Extract items based on whether it's RSS or HTML
+            let items;
+            if (doc.getElementsByTagName('item').length > 0) {
+                // It's RSS
+                items = Array.from(doc.getElementsByTagName('item'));
+            } else {
+                // It's HTML, extract articles or other relevant content
+                items = Array.from(doc.querySelectorAll('article, .post, .entry'));
+            }
+    
+            return items.map(item => ({
+                title: item.querySelector('title, h1, h2')?.textContent || 'No title',
+                link: item.querySelector('link, a')?.getAttribute('href') || 'No link',
+                pubDate: item.querySelector('pubDate, time')?.textContent || 'No pubDate',
+                description: item.querySelector('description, p')?.textContent || 'No description',
+                category: item.querySelector('category')?.textContent || 'Uncategorized',
+                imageUrl: item.querySelector('media\\:content, img')?.getAttribute('src') || 'No image',
+                author: item.querySelector('author, .author')?.textContent || 'Unknown',
+                source: url,
             }));
         } catch (error) {
-            console.error('Error fetching RSS feed:', error);
+            console.error('Error fetching and parsing feed:', error);
             return [];
         }
     }
