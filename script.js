@@ -1,41 +1,14 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const addFeedForm = document.getElementById('addFeedForm');
-    const feedsContainer = document.getElementById('feedsContainer');
-    const filterSelect = document.getElementById('filterSelect');
-    const articleModal = document.getElementById('articleModal');
-    const modalContent = document.getElementById('modalContent');
-    const editModal = document.getElementById('editModal');
-    const editFeedForm = document.getElementById('editFeedForm');
-
+document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
-    async function fetchRSSFeed(url) {
+    // Function to fetch and parse RSS feed using the proxy server
+    async function fetchAndParseRSS(url) {
         try {
-            const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
-            const data = await response.json();
-            return data.items.map(item => ({
-                title: item.title,
-                link: item.link,
-                pubDate: item.pubDate,
-                description: item.description,
-                category: item.categories ? item.categories.join(', ') : 'Uncategorized',
-                imageUrl: item.enclosure ? item.enclosure.link : (item['media:content'] ? item['media:content'].url : null),
-                author: item.author,
-                source: url,
-            }));
-        } catch (error) {
-            console.error('Error fetching RSS feed:', error);
-            alert('Failed to fetch RSS feed. Please check the URL or try another feed.');
-            return [];
-        }
-    }
-
-    async function fetchArticleContent(url) {
-        try {
-            const response = await fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
+            const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*', // CORS header to allow all origins
                 },
                 body: JSON.stringify({ url: url }),
             });
@@ -44,151 +17,144 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.text(); // Expect raw text for RSS feeds
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data, 'application/xml'); // Use 'application/xml' for RSS
+
+            const items = xmlDoc.getElementsByTagName('item');
+
+            return Array.from(items).map(item => ({
+                title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
+                link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
+                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
+                description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
+                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
+                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
+                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
+                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
+            }));
+        } catch (error) {
+            console.error('Error fetching RSS feed:', error);
+            return [];
+        }
+    }
+
+    // Function to fetch and parse article content using the proxy server
+    async function fetchArticleContent(url) {
+        try {
+            const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*', // CORS header to allow all origins
+                },
+                body: JSON.stringify({ url: url }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.content; // Return the cleaned-up content
         } catch (error) {
             console.error('Error fetching article content:', error);
-            return {
-                title: 'Error',
-                content: '<p>Unable to load content.</p>',
-                url: url,
-            };
+            return '<p>Unable to load content.</p>';
         }
     }
 
-    function saveFeeds() {
-        localStorage.setItem('feeds', JSON.stringify(feeds));
-    }
-
-    function sortArticlesByDate(articles) {
-        return articles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
-    }
-
-    async function renderFeeds() {
+    // Function to render the feeds
+    function renderFeeds() {
+        const feedsContainer = document.getElementById('feedsContainer');
         feedsContainer.innerHTML = '';
-        const allArticles = feeds.flatMap(feed => feed.items.map(item => ({ ...item, feedCategory: feed.category })));
-        const sortedArticles = sortArticlesByDate(allArticles);
 
-        for (const article of sortedArticles) {
-            const articleElement = document.createElement('article');
-            articleElement.classList.add('feed-item');
-            articleElement.dataset.category = article.category;
+        const filteredFeeds = feeds.filter(feed => {
+            const selectedCategory = document.getElementById('filterSelect').value;
+            return selectedCategory === 'All' || feed.category === selectedCategory;
+        });
 
-            articleElement.innerHTML = `
-                <h3><a href="#" class="article-link" data-url="${article.link}">${article.title}</a></h3>
-                ${article.imageUrl ? `<img src="${article.imageUrl}" alt="${article.title}" class="article-image">` : ''}
-                <p>${article.description}</p>
-                <div class="article-meta">
-                    <span>Category: ${article.category}</span>
-                    <span>Feed: ${article.feedCategory}</span>
-                    <span>Published: ${new Date(article.pubDate).toLocaleString()}</span>
-                    <span>Author: ${article.author}</span>
-                </div>
-            `;
+        filteredFeeds.forEach(feed => {
+            const feedItem = document.createElement('div');
+            feedItem.classList.add('feed-item');
 
-            feedsContainer.appendChild(articleElement);
-        }
+            const title = document.createElement('h3');
+            title.textContent = `${feed.title} - Feed`;
+            title.addEventListener('click', async () => {
+                const content = await fetchArticleContent(feed.link);
+                showModal(content);
+            });
 
-        saveFeeds();
-        renderFilterOptions();
+            const image = document.createElement('img');
+            image.src = feed.imageUrl;
+            image.classList.add('article-image');
+            image.addEventListener('click', () => window.open(feed.link, '_blank'));
+
+            const description = document.createElement('p');
+            description.textContent = feed.description;
+
+            const meta = document.createElement('div');
+            meta.classList.add('article-meta');
+            meta.innerHTML = `<p>Published on: ${feed.pubDate}</p><p>Author: ${feed.author}</p><p>Category: ${feed.category}</p>`;
+
+            feedItem.appendChild(title);
+            feedItem.appendChild(image);
+            feedItem.appendChild(description);
+            feedItem.appendChild(meta);
+
+            feedsContainer.appendChild(feedItem);
+        });
     }
 
+    // Function to render filter options based on categories
     function renderFilterOptions() {
-        const categories = [...new Set(feeds.flatMap(feed => feed.items.map(item => item.category)))];
-        filterSelect.innerHTML = `
-            <option value="all">All Categories</option>
-            ${categories.map(category => `<option value="${category}">${category}</option>`).join('')}
-        `;
-    }
+        const filterSelect = document.getElementById('filterSelect');
+        const categories = ['All', ...new Set(feeds.map(feed => feed.category))];
 
-    function filterArticles() {
-        const selectedCategory = filterSelect.value;
-        const articles = document.querySelectorAll('.feed-item');
-        articles.forEach(article => {
-            if (selectedCategory === 'all' || article.dataset.category === selectedCategory) {
-                article.style.display = 'block';
-            } else {
-                article.style.display = 'none';
-            }
+        filterSelect.innerHTML = '';
+        categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            option.textContent = category;
+            filterSelect.appendChild(option);
         });
     }
 
-    async function addFeed(url, category) {
-        const items = await fetchRSSFeed(url);
-        if (items.length === 0) return;
-
-        const existingFeedIndex = feeds.findIndex(feed => feed.url === url);
-        if (existingFeedIndex !== -1) {
-            feeds[existingFeedIndex] = { url, category, items };
-        } else {
-            feeds.push({ url, category, items });
-        }
-
-        await renderFeeds();
+    // Function to show modal with content
+    function showModal(content) {
+        const modal = document.getElementById('articleModal');
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = content;
+        modal.style.display = 'block';
     }
 
-    function removeFeed(url) {
-        feeds = feeds.filter(feed => feed.url !== url);
-        renderFeeds();
-    }
+    // Event listeners for modal close buttons
+    document.querySelectorAll('.modal .close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', () => {
+            closeBtn.parentElement.parentElement.style.display = 'none';
+        });
+    });
 
-    async function displayArticleContent(url) {
-        const content = await fetchArticleContent(url);
-        modalContent.innerHTML = `
-            <h2>${content.title}</h2>
-            ${content.content}
-        `;
-        articleModal.style.display = 'block';
-    }
-
-    addFeedForm.addEventListener('submit', async function (event) {
+    // Event listener for adding new feed
+    document.getElementById('addFeedForm').addEventListener('submit', async event => {
         event.preventDefault();
-        const feedUrl = document.getElementById('feedUrl').value.trim();
-        const category = document.getElementById('category').value.trim();
+        const feedUrl = document.getElementById('feedUrl').value;
+        const category = document.getElementById('category').value;
+
         if (feedUrl && category) {
-            await addFeed(feedUrl, category);
-            addFeedForm.reset();
+            const newFeeds = await fetchAndParseRSS(feedUrl);
+            newFeeds.forEach(feed => {
+                feeds.push({ ...feed, category });
+            });
+            localStorage.setItem('feeds', JSON.stringify(feeds));
+            renderFeeds();
+            renderFilterOptions();
         }
     });
 
-    editFeedForm.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        const originalUrl = editFeedForm.dataset.originalUrl;
-        const newUrl = document.getElementById('editFeedUrl').value.trim();
-        const newCategory = document.getElementById('editCategory').value.trim();
-        if (newUrl && newCategory) {
-            removeFeed(originalUrl);
-            await addFeed(newUrl, newCategory);
-            editModal.style.display = 'none';
-        }
-    });
+    // Initial rendering
+    renderFeeds();
+    renderFilterOptions();
 
-    filterSelect.addEventListener('change', filterArticles);
-
-    feedsContainer.addEventListener('click', async function (event) {
-        if (event.target.classList.contains('article-link')) {
-            event.preventDefault();
-            const url = event.target.dataset.url;
-            await displayArticleContent(url);
-        }
-    });
-
-    document.querySelectorAll('.close').forEach(closeBtn => {
-        closeBtn.addEventListener('click', function() {
-            this.closest('.modal').style.display = 'none';
-        });
-    });
-
-    window.addEventListener('click', function (event) {
-        if (event.target.classList.contains('modal')) {
-            event.target.style.display = 'none';
-        }
-    });
-
-    // Initial load
-    (async function init() {
-        if (feeds.length === 0) {
-            await addFeed('https://flipboard.com/@raimoseero/feed-nii8kd0sz.rss', 'Initial Feed');
-        }
-        await renderFeeds();
-    })();
+    // Event listener for filter change
+    document.getElementById('filterSelect').addEventListener('change', renderFeeds);
 });
