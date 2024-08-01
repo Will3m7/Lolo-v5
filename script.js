@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
-    // Function to fetch and parse RSS feed using the proxy server
-    async function fetchAndParseRSS(url) {
+    // Function to fetch and parse data using the proxy server
+    async function fetchFromProxy(url, isRSS = false) {
         try {
             const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
                 method: 'POST',
@@ -17,49 +17,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            const data = await response.text(); // Expect raw text for RSS feeds
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data, 'application/xml'); // Use 'application/xml' for RSS
+            if (isRSS) {
+                const data = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data, 'application/xml');
+                const items = xmlDoc.getElementsByTagName('item');
 
-            const items = xmlDoc.getElementsByTagName('item');
-
-            return Array.from(items).map(item => ({
-                title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
-                link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
-                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
-                description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
-                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
-                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
-                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
-                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
-            }));
-        } catch (error) {
-            console.error('Error fetching RSS feed:', error);
-            return [];
-        }
-    }
-
-    // Function to fetch and parse article content using the proxy server
-    async function fetchArticleContent(url) {
-        try {
-            const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*', // CORS header to allow all origins
-                },
-                body: JSON.stringify({ url: url }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                return Array.from(items).map(item => ({
+                    title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
+                    link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
+                    pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
+                    description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
+                    category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
+                    imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
+                    author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
+                    source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
+                }));
+            } else {
+                const data = await response.json();
+                return data.content;
             }
-
-            const data = await response.json();
-            return data.content; // Return the cleaned-up content
         } catch (error) {
-            console.error('Error fetching article content:', error);
-            return '<p>Unable to load content.</p>';
+            console.error('Error fetching data:', error);
+            return isRSS ? [] : '<p>Unable to load content.</p>';
         }
     }
 
@@ -68,10 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const feedsContainer = document.getElementById('feedsContainer');
         feedsContainer.innerHTML = '';
 
-        const filteredFeeds = feeds.filter(feed => {
-            const selectedCategory = document.getElementById('filterSelect').value;
-            return selectedCategory === 'All' || feed.category === selectedCategory;
-        });
+        const selectedCategory = document.getElementById('filterSelect').value;
+        const filteredFeeds = selectedCategory === 'All' ? feeds : feeds.filter(feed => feed.category === selectedCategory);
 
         filteredFeeds.forEach(feed => {
             const feedItem = document.createElement('div');
@@ -80,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.createElement('h3');
             title.textContent = `${feed.title} - Feed`;
             title.addEventListener('click', async () => {
-                const content = await fetchArticleContent(feed.link);
+                const content = await fetchFromProxy(feed.link);
                 showModal(content);
             });
 
@@ -96,11 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             meta.classList.add('article-meta');
             meta.innerHTML = `<p>Published on: ${feed.pubDate}</p><p>Author: ${feed.author}</p><p>Category: ${feed.category}</p>`;
 
-            feedItem.appendChild(title);
-            feedItem.appendChild(image);
-            feedItem.appendChild(description);
-            feedItem.appendChild(meta);
-
+            feedItem.append(title, image, description, meta);
             feedsContainer.appendChild(feedItem);
         });
     }
@@ -110,27 +84,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const filterSelect = document.getElementById('filterSelect');
         const categories = ['All', ...new Set(feeds.map(feed => feed.category))];
 
-        filterSelect.innerHTML = '';
-        categories.forEach(category => {
-            const option = document.createElement('option');
-            option.value = category;
-            option.textContent = category;
-            filterSelect.appendChild(option);
-        });
+        filterSelect.innerHTML = categories.map(category => 
+            `<option value="${category}">${category}</option>`
+        ).join('');
     }
 
     // Function to show modal with content
     function showModal(content) {
         const modal = document.getElementById('articleModal');
-        const modalContent = document.getElementById('modalContent');
-        modalContent.innerHTML = content;
+        document.getElementById('modalContent').innerHTML = content;
         modal.style.display = 'block';
     }
 
     // Event listeners for modal close buttons
     document.querySelectorAll('.modal .close').forEach(closeBtn => {
         closeBtn.addEventListener('click', () => {
-            closeBtn.parentElement.parentElement.style.display = 'none';
+            closeBtn.closest('.modal').style.display = 'none';
         });
     });
 
@@ -141,10 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const category = document.getElementById('category').value;
 
         if (feedUrl && category) {
-            const newFeeds = await fetchAndParseRSS(feedUrl);
-            newFeeds.forEach(feed => {
-                feeds.push({ ...feed, category });
-            });
+            const newFeeds = await fetchFromProxy(feedUrl, true);
+            feeds.push(...newFeeds.map(feed => ({ ...feed, category })));
             localStorage.setItem('feeds', JSON.stringify(feeds));
             renderFeeds();
             renderFilterOptions();
