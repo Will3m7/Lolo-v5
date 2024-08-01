@@ -12,10 +12,19 @@ document.addEventListener('DOMContentLoaded', function () {
     async function fetchRSSFeed(url) {
         try {
             const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
             const text = await response.text();
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(text, 'application/xml');
             const items = xmlDoc.getElementsByTagName('item');
+            
+            if (items.length === 0) {
+                throw new Error('No items found in the RSS feed.');
+            }
+
             return Array.from(items).map(item => ({
                 title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
                 link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
@@ -28,6 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }));
         } catch (error) {
             console.error('Error fetching RSS feed:', error);
+            alert('Failed to fetch RSS feed. Please check the URL or try another feed.');
             return [];
         }
     }
@@ -35,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to fetch and parse article content using the proxy server
     async function fetchArticleContent(url) {
         try {
-            const response = await fetch('https://proxyserver-bice.vercel.app', {
+            const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -212,23 +222,6 @@ document.addEventListener('DOMContentLoaded', function () {
         if (event.target === modal) {
             closeEditModal();
         }
-    });
-
-    filterSelect.addEventListener('change', function () {
-        const selectedCategory = filterSelect.value;
-        const feedElements = feedsContainer.querySelectorAll('.feed');
-
-        feedElements.forEach(feedElement => {
-            const items = feedElement.querySelectorAll('li');
-            items.forEach(item => {
-                const category = item.querySelector('.category')?.textContent;
-                if (selectedCategory === 'all' || category === selectedCategory) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
     });
 
     // Initial rendering
