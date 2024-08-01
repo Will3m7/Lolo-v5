@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Function to fetch and parse article content using the proxy server
     async function fetchArticleContent(url) {
         try {
-            const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
+            const response = await fetch('https://proxyserver-bice.vercel.app', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
