@@ -9,60 +9,41 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initialize feeds from localStorage if available
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
-// Function to fetch and parse RSS feed
-async function fetchRSS(url) {
-    try {
-        // Fetch the RSS feed as XML from the provided URL
-        const response = await fetch(`https://proxyserver-bice.vercel.app/webparser?rss_url=${encodeURIComponent(url)}`);
-        const rssXml = await response.text();
+    // Function to fetch and parse RSS feed using the proxy server
+    async function fetchAndParseRSS(url) {
+        try {
+            const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: url }),
+            });
 
-        // Parse the XML to JSON
-        const parser = new xml2js.Parser();
-        const rssData = await parser.parseStringPromise(rssXml);
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
 
-        // Extract items from RSS feed
-        const items = rssData.rss.channel[0].item || [];
+            const data = await response.json();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data.content, 'text/xml');
+            const items = xmlDoc.getElementsByTagName('item');
 
-        // Process each item
-        return items.map(item => ({
-            title: item.title[0],
-            link: item.link[0],
-            pubDate: item.pubDate ? item.pubDate[0] : 'Unknown',
-            description: item.description[0],
-            category: item.category ? item.category.join(', ') : 'Uncategorized',
-            imageUrl: item.enclosure ? item.enclosure[0].$.url : (item['media:content'] ? item['media:content'][0].$.url : null),
-            author: item.author ? item.author[0] : 'Unknown',
-            source: item.source ? item.source[0]._ : 'Unknown',
-        }));
-    } catch (error) {
-        console.error('Error fetching RSS feed:', error);
-        return [];
+            return Array.from(items).map(item => ({
+                title: item.getElementsByTagName('title')[0].textContent,
+                link: item.getElementsByTagName('link')[0].textContent,
+                pubDate: item.getElementsByTagName('pubDate')[0].textContent,
+                description: item.getElementsByTagName('description')[0].textContent,
+                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
+                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || null,
+                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
+                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
+            }));
+        } catch (error) {
+            console.error('Error fetching RSS feed:', error);
+            return [];
+        }
     }
-}
-
-// Example usage
-fetchRSS('https://www.theverge.com/rss/index.xml')
-    .then(items => console.log(items))
-    .catch(error => console.error('Error:', error));
-
-
-// Function to fetch and parse article content using Mercury Web Parser
-async function fetchArticleContent(url) {
-    try {
-        const response = await fetch('https://uptime-mercury-api.azurewebsites.net/webparser', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: url }),
-        });
-        const data = await response.json();
-        return data.content;
-    } catch (error) {
-        console.error('Error fetching article content:', error);
-        return '<p>Unable to load content.</p>';
-    }
-}
 
     // Function to save feeds to localStorage
     function saveFeeds() {
@@ -195,15 +176,21 @@ async function fetchArticleContent(url) {
         }
     });
 
-    // Event listener to close modal
-    modalCloseBtn.addEventListener('click', function () {
-        closeEditModal();
+    // Close modal on close button click
+    modalCloseBtn.addEventListener('click', closeEditModal);
+
+    // Close modal on outside click
+    window.addEventListener('click', function (event) {
+        if (event.target === modal) {
+            closeEditModal();
+        }
     });
 
-    // Event listener for filtering articles based on category
+    // Filter articles based on selected category
     filterSelect.addEventListener('change', function () {
         const selectedCategory = filterSelect.value;
         const feedElements = feedsContainer.querySelectorAll('.feed');
+
         feedElements.forEach(feedElement => {
             const items = feedElement.querySelectorAll('li');
             items.forEach(item => {
