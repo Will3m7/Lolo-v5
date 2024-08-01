@@ -19,23 +19,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: JSON.stringify({ url: url }),
             });
-
+    
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
-
-            const data = await response.json();
+    
+            const data = await response.text(); // Expect raw text for RSS feeds
             const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data.content, 'text/html');
+            const xmlDoc = parser.parseFromString(data, 'application/xml'); // Use 'application/xml' for RSS
+    
             const items = xmlDoc.getElementsByTagName('item');
-
+    
             return Array.from(items).map(item => ({
-                title: item.getElementsByTagName('title')[0].textContent,
-                link: item.getElementsByTagName('link')[0].textContent,
-                pubDate: item.getElementsByTagName('pubDate')[0].textContent,
-                description: item.getElementsByTagName('description')[0].textContent,
+                title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
+                link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
+                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
+                description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
                 category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
-                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || data.lead_image_url,
+                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
                 author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
                 source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
             }));
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return [];
         }
     }
+    
 
     // Function to save feeds to localStorage
     function saveFeeds() {
