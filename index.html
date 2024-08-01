@@ -3,35 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RSSTEST</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Lolo v5</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>RSSTEST</h1>
+    <header>
+        <h1>Lolo v5</h1>
+    </header>
+    
+    <main>
+        <section id="addFeedSection">
+            <h2>Add New Feed</h2>
+            <form id="addFeedForm">
+                <input type="url" id="feedUrl" placeholder="Feed URL" required>
+                <input type="text" id="category" placeholder="Category" required>
+                <button type="submit">Add Feed</button>
+            </form>
+        </section>
 
-    <form id="addFeedForm">
-        <label for="feedUrl">Feed URL:</label>
-        <input type="url" id="feedUrl" name="feedUrl" required>
-        <label for="category">Category:</label>
-        <input type="text" id="category" name="category" required>
-        <button type="submit">Add Feed</button>
-    </form>
+        <section id="filterSection">
+            <h2>Filter by Category</h2>
+            <select id="filterSelect">
+                <option value="all">All Categories</option>
+            </select>
+        </section>
 
-    <select id="filterSelect">
-        <option value="all">All Categories</option>
-    </select>
+        <section id="feedsContainer"></section>
+    </main>
 
-    <div id="feedsContainer"></div>
+    <div id="articleModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modalContent"></div>
+        </div>
+    </div>
 
-    <!-- Edit Feed Modal -->
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <span id="modalCloseBtn" class="close">&times;</span>
-            <form id="editModalForm">
-                <label for="editFeedUrl">Feed URL:</label>
-                <input type="url" id="editFeedUrl" name="editFeedUrl" required>
-                <label for="editCategory">Category:</label>
-                <input type="text" id="editCategory" name="editCategory" required>
+            <span class="close" id="editModalClose">&times;</span>
+            <h2>Edit Feed</h2>
+            <form id="editFeedForm">
+                <input type="url" id="editFeedUrl" placeholder="Feed URL" required>
+                <input type="text" id="editCategory" placeholder="Category" required>
                 <button type="submit">Save Changes</button>
             </form>
         </div>

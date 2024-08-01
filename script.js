@@ -2,9 +2,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const addFeedForm = document.getElementById('addFeedForm');
     const feedsContainer = document.getElementById('feedsContainer');
     const filterSelect = document.getElementById('filterSelect');
-    const modal = document.getElementById('editModal');
-    const modalForm = document.getElementById('editModalForm');
-    const modalCloseBtn = document.getElementById('modalCloseBtn');
+    const articleModal = document.getElementById('articleModal');
+    const modalContent = document.getElementById('modalContent');
+    const editModal = document.getElementById('editModal');
+    const editFeedForm = document.getElementById('editFeedForm');
 
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
@@ -27,13 +28,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
             return Array.from(items).map(item => ({
                 title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
-                link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
-                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
+                link: item.getElementsByTagName('link')[0]?.textContent || '#',
+                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || new Date().toUTCString(),
                 description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
                 category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
-                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
+                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || '',
                 author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
-                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
+                source: url,
             }));
         } catch (error) {
             console.error('Error fetching RSS feed:', error);
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Function to fetch and parse article content using the proxy server
+    // Function to fetch article content using the proxy server
     async function fetchArticleContent(url) {
         try {
             const response = await fetch('https://proxyserver-bice.vercel.app/webparser', {
@@ -57,39 +58,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            const data = await response.json();
-            return {
-                title: data.title || 'No title',
-                content: data.content || '<p>Unable to load content.</p>',
-                imageUrl: data.lead_image_url || 'No image',
-                excerpt: data.excerpt || 'No excerpt',
-                url: data.url || url,
-            };
+            return await response.json();
         } catch (error) {
             console.error('Error fetching article content:', error);
             return {
                 title: 'Error',
                 content: '<p>Unable to load content.</p>',
-                imageUrl: 'No image',
-                excerpt: 'Error loading content.',
                 url: url,
             };
-        }
-    }
-
-    // Function to check if URL is RSS feed
-    function isRSSFeed(url) {
-        return url.endsWith('.rss') || url.includes('/feed/');
-    }
-
-    // Function to fetch and parse RSS feed or webpage
-    async function fetchAndDisplayContent(url) {
-        if (isRSSFeed(url)) {
-            const items = await fetchRSSFeed(url);
-            return items;
-        } else {
-            const content = await fetchArticleContent(url);
-            return [content]; // Return as an array with one item
         }
     }
 
@@ -97,134 +73,147 @@ document.addEventListener('DOMContentLoaded', function () {
         localStorage.setItem('feeds', JSON.stringify(feeds));
     }
 
+    function sortArticlesByDate(articles) {
+        return articles.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+    }
+
     async function renderFeeds() {
         feedsContainer.innerHTML = '';
-        for (const feed of feeds) {
-            const feedElement = document.createElement('div');
-            feedElement.classList.add('feed');
+        const allArticles = feeds.flatMap(feed => feed.items.map(item => ({ ...item, feedCategory: feed.category })));
+        const sortedArticles = sortArticlesByDate(allArticles);
 
-            feedElement.innerHTML = `
-                <h3>${feed.category}</h3>
-                <ul>
-                    ${feed.items.map(item => `
-                        <li>
-                            <div class="article-header">
-                                <h4><a href="${item.link}" target="_blank">${item.title} - Feed</a></h4>
-                                ${item.imageUrl ? `<a href="${item.link}" target="_blank"><img src="${item.imageUrl}" alt="${item.title}" class="article-image"></a>` : ''}
-                            </div>
-                            <p>${item.description}</p>
-                            <a href="${item.link}" target="_blank">Read More</a>
-                            <time>${new Date(item.pubDate).toLocaleString()}</time>
-                            <p>Author: ${item.author}</p>
-                            <p>Source: ${item.source}</p>
-                        </li>
-                    `).join('')}
-                </ul>
-                <button class="edit-feed" data-url="${feed.url}">Edit Feed</button>
-                <button class="remove-feed" data-url="${feed.url}">Remove Feed</button>
+        for (const article of sortedArticles) {
+            const articleElement = document.createElement('article');
+            articleElement.classList.add('feed-item');
+            articleElement.dataset.category = article.category;
+
+            articleElement.innerHTML = `
+                <h3><a href="#" class="article-link" data-url="${article.link}">${article.title}</a></h3>
+                ${article.imageUrl ? `<img src="${article.imageUrl}" alt="${article.title}" class="article-image">` : ''}
+                <p>${article.description}</p>
+                <div class="article-meta">
+                    <span>Category: ${article.category}</span>
+                    <span>Feed: ${article.feedCategory}</span>
+                    <span>Published: ${new Date(article.pubDate).toLocaleString()}</span>
+                    <span>Author: ${article.author}</span>
+                </div>
             `;
 
-            feedsContainer.appendChild(feedElement);
+            feedsContainer.appendChild(articleElement);
         }
+
         saveFeeds();
+        renderFilterOptions();
     }
 
     function renderFilterOptions() {
-        const categories = feeds.flatMap(feed => feed.items.map(item => item.category));
-        const uniqueCategories = [...new Set(categories.filter(category => category))];
-
+        const categories = [...new Set(feeds.flatMap(feed => feed.items.map(item => item.category)))];
         filterSelect.innerHTML = `
             <option value="all">All Categories</option>
-            ${uniqueCategories.map(category => `
-                <option value="${category}">${category}</option>
-            `).join('')}
+            ${categories.map(category => `<option value="${category}">${category}</option>`).join('')}
         `;
     }
 
-    function openEditModal(feedUrl, category) {
-        modal.style.display = 'block';
-        modalForm.dataset.url = feedUrl;
-        document.getElementById('editFeedUrl').value = feedUrl;
-        document.getElementById('editCategory').value = category;
+    function filterArticles() {
+        const selectedCategory = filterSelect.value;
+        const articles = document.querySelectorAll('.feed-item');
+        articles.forEach(article => {
+            if (selectedCategory === 'all' || article.dataset.category === selectedCategory) {
+                article.style.display = 'block';
+            } else {
+                article.style.display = 'none';
+            }
+        });
     }
 
-    function closeEditModal() {
-        modal.style.display = 'none';
+    async function addFeed(url, category) {
+        const items = await fetchRSSFeed(url);
+        if (items.length === 0) return;
+
+        const existingFeedIndex = feeds.findIndex(feed => feed.url === url);
+        if (existingFeedIndex !== -1) {
+            feeds[existingFeedIndex] = { url, category, items };
+        } else {
+            feeds.push({ url, category, items });
+        }
+
+        await renderFeeds();
     }
 
+    function removeFeed(url) {
+        feeds = feeds.filter(feed => feed.url !== url);
+        renderFeeds();
+    }
+
+    function openEditModal(url) {
+        const feed = feeds.find(feed => feed.url === url);
+        if (feed) {
+            document.getElementById('editFeedUrl').value = feed.url;
+            document.getElementById('editCategory').value = feed.category;
+            editModal.style.display = 'block';
+            editFeedForm.dataset.originalUrl = url;
+        }
+    }
+
+    async function displayArticleContent(url) {
+        const content = await fetchArticleContent(url);
+        modalContent.innerHTML = `
+            <h2>${content.title}</h2>
+            ${content.content}
+        `;
+        articleModal.style.display = 'block';
+    }
+
+    // Event Listeners
     addFeedForm.addEventListener('submit', async function (event) {
         event.preventDefault();
         const feedUrl = document.getElementById('feedUrl').value.trim();
         const category = document.getElementById('category').value.trim();
-
         if (feedUrl && category) {
-            const items = await fetchAndDisplayContent(feedUrl);
-            if (items.length === 0) return; // Skip if no items are returned
-
-            const existingFeedIndex = feeds.findIndex(feed => feed.url === feedUrl);
-
-            if (existingFeedIndex !== -1) {
-                feeds[existingFeedIndex] = { url: feedUrl, category: category, items: items };
-            } else {
-                feeds.push({ url: feedUrl, category: category, items: items });
-            }
-
-            await renderFeeds();
-            renderFilterOptions();
+            await addFeed(feedUrl, category);
             addFeedForm.reset();
-        } else {
-            alert('Please provide both a feed URL and a category.');
         }
     });
+
+    editFeedForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const originalUrl = editFeedForm.dataset.originalUrl;
+        const newUrl = document.getElementById('editFeedUrl').value.trim();
+        const newCategory = document.getElementById('editCategory').value.trim();
+        if (newUrl && newCategory) {
+            removeFeed(originalUrl);
+            await addFeed(newUrl, newCategory);
+            editModal.style.display = 'none';
+        }
+    });
+
+    filterSelect.addEventListener('change', filterArticles);
 
     feedsContainer.addEventListener('click', async function (event) {
-        const target = event.target;
-        if (target.classList.contains('remove-feed')) {
-            const urlToRemove = target.getAttribute('data-url');
-            feeds = feeds.filter(feed => feed.url !== urlToRemove);
-            await renderFeeds();
-            renderFilterOptions();
-        } else if (target.classList.contains('edit-feed')) {
-            const urlToEdit = target.getAttribute('data-url');
-            const feedToEdit = feeds.find(feed => feed.url === urlToEdit);
-            if (feedToEdit) {
-                openEditModal(feedToEdit.url, feedToEdit.category);
-            }
+        if (event.target.classList.contains('article-link')) {
+            event.preventDefault();
+            const url = event.target.dataset.url;
+            await displayArticleContent(url);
         }
     });
 
-    modalForm.addEventListener('submit', async function (event) {
-        event.preventDefault();
-        const feedUrl = modalForm.dataset.url;
-        const newFeedUrl = document.getElementById('editFeedUrl').value.trim();
-        const newCategory = document.getElementById('editCategory').value.trim();
-
-        if (newFeedUrl && newCategory) {
-            const items = await fetchAndDisplayContent(newFeedUrl);
-            if (items.length === 0) return; // Skip if no items are returned
-
-            const existingFeedIndex = feeds.findIndex(feed => feed.url === feedUrl);
-
-            if (existingFeedIndex !== -1) {
-                feeds[existingFeedIndex] = { url: newFeedUrl, category: newCategory, items: items };
-                closeEditModal();
-                await renderFeeds();
-                renderFilterOptions();
-            }
-        } else {
-            alert('Please provide both a feed URL and a category.');
-        }
+    document.querySelectorAll('.close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            this.closest('.modal').style.display = 'none';
+        });
     });
-
-    modalCloseBtn.addEventListener('click', closeEditModal);
 
     window.addEventListener('click', function (event) {
-        if (event.target === modal) {
-            closeEditModal();
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
         }
     });
 
-    // Initial rendering
-    renderFeeds();
-    renderFilterOptions();
+    // Initial load
+    (async function init() {
+        if (feeds.length === 0) {
+            await addFeed('https://flipboard.com/@raimoseero/feed-nii8kd0sz.rss', 'Initial Feed');
+        }
+        await renderFeeds();
+    })();
 });
