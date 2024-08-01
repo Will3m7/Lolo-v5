@@ -430,7 +430,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Initial render of feeds and filter options
     renderFeeds();
     renderFilterOptions();
-});
+
 
 document.addEventListener('DOMContentLoaded', function () {
     const addFeedForm = document.getElementById('addFeedForm');
