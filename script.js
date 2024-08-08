@@ -63,42 +63,43 @@ async function fetchAndDisplayContent(url) {
     }
   });
 
+  
+// Function to render the feeds
+function renderFeeds() {
+    const feedsContainer = document.getElementById('feedsContainer');
+    feedsContainer.innerHTML = '';
 
-    // Function to render the feeds
-    function renderFeeds() {
-        const feedsContainer = document.getElementById('feedsContainer');
-        feedsContainer.innerHTML = '';
+    const selectedCategory = document.getElementById('filterSelect').value;
+    const filteredFeeds = selectedCategory === 'All' ? feeds : feeds.filter(feed => feed.category === selectedCategory);
 
-        const selectedCategory = document.getElementById('filterSelect').value;
-        const filteredFeeds = selectedCategory === 'All' ? feeds : feeds.filter(feed => feed.category === selectedCategory);
+    filteredFeeds.forEach(feed => {
+        const feedItem = document.createElement('div');
+        feedItem.classList.add('feed-item');
 
-        filteredFeeds.forEach(feed => {
-            const feedItem = document.createElement('div');
-            feedItem.classList.add('feed-item');
-
-            const title = document.createElement('h3');
-            title.textContent = `${feed.title} - Feed`;
-            title.addEventListener('click', async () => {
-                const content = await fetchFromProxy(feed.link);
-                displayContent(content);
-            });
-
-            const image = document.createElement('img');
-            image.src = feed.imageUrl;
-            image.classList.add('article-image');
-            image.addEventListener('click', () => window.open(feed.link, '_blank'));
-
-            const description = document.createElement('p');
-            description.textContent = feed.description;
-
-            const meta = document.createElement('div');
-            meta.classList.add('article-meta');
-            meta.innerHTML = `<p>Published on: ${feed.pubDate}</p><p>Author: ${feed.author}</p><p>Category: ${feed.category}</p>`;
-
-            feedItem.append(title, image, description, meta);
-            feedsContainer.appendChild(feedItem);
+        const title = document.createElement('h3');
+        title.textContent = `${feed.title} - Feed`;
+        title.addEventListener('click', async () => {
+            await fetchAndDisplayContent(feed.link);
         });
-    }
+
+        const image = document.createElement('img');
+        image.src = feed.imageUrl;
+        image.classList.add('article-image');
+        image.addEventListener('click', () => {
+            fetchAndDisplayContent(feed.link);
+        });
+
+        const description = document.createElement('p');
+        description.textContent = feed.description;
+
+        const meta = document.createElement('div');
+        meta.classList.add('article-meta');
+        meta.innerHTML = `<p>Published on: ${feed.pubDate}</p><p>Author: ${feed.author}</p><p>Category: ${feed.category}</p>`;
+
+        feedItem.append(title, image, description, meta);
+        feedsContainer.appendChild(feedItem);
+    });
+}
 
     // Function to render filter options based on categories
     function renderFilterOptions() {
