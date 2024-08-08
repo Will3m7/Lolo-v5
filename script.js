@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
