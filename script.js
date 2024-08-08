@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Function to fetch and parse data using the proxy server
 async function fetchFromProxy(url, isRSS = false) {
     try {
-        const response = await fetch('https://proxyserver-bice.vercel.app/webparser', { // Make sure the endpoint is correct
+        const response = await fetch('https://proxyserver-bice.vercel.app', { // Make sure the endpoint is correct
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
