@@ -1,6 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
+    async function makePostRequest() {
+        try {
+          const response = await fetch('https://proxyserver-bice.vercel.app/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: 'Hello, server!' }),
+          });
+      
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Response:', data);
+          } else {
+            console.error('Request failed:', response.status);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      }
+      
+      // Call the function to make the POST request
+      makePostRequest();
+
 // Function to fetch and parse data using the proxy server
 async function fetchFromProxy(url, isRSS = false) {
     try {
