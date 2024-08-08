@@ -37,6 +37,80 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+// Event listener for adding new feed
+document.getElementById('addFeedForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const feedUrl = document.getElementById('feedUrl').value;
+    const category = document.getElementById('category').value;
+
+    if (feedUrl && category) {
+        const newFeeds = await fetchFromProxy(feedUrl, true);
+        feeds.push(...newFeeds.map(feed => ({ ...feed, category })));
+        localStorage.setItem('feeds', JSON.stringify(feeds));
+        renderFeeds();
+        renderFilterOptions();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
+
+    // Function to fetch and parse data using the proxy server
+    async function fetchFromProxy(url, isRSS = false) {
+        try {
+            const response = await fetch('https://proxyserver-bice.vercel.app', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                },
+                body: JSON.stringify({ url: url }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            if (isRSS) {
+                const data = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data, 'application/xml');
+                const items = xmlDoc.getElementsByTagName('item');
+
+                return Array.from(items).map(item => ({
+                    // ... (existing feed item mapping)
+                }));
+            } else {
+                const data = await response.json();
+                console.log('Fetched data:', data);
+                return data.content;
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            return isRSS ? [] : '<p>Unable to load content.</p>';
+        }
+    }
+
+    // ... (existing code)
+
+    // Event listener for adding new feed
+    document.getElementById('addFeedForm').addEventListener('submit', async event => {
+        event.preventDefault();
+        const feedUrl = document.getElementById('feedUrl').value;
+        const category = document.getElementById('category').value;
+
+        if (feedUrl && category) {
+            const newFeeds = await fetchFromProxy(feedUrl, true);
+            feeds.push(...newFeeds.map(feed => ({ ...feed, category })));
+            localStorage.setItem('feeds', JSON.stringify(feeds));
+            renderFeeds();
+            renderFilterOptions();
+        }
+    });
+
+    // ... (existing code)
+});
+
     // Function to render the feeds
     function renderFeeds() {
         const feedsContainer = document.getElementById('feedsContainer');
