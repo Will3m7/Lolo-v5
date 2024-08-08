@@ -3,47 +3,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // Function to fetch and parse data using the proxy server
-async function fetchFromProxy(url, isRSS = false) {
+title.addEventListener('click', async () => {
+    await fetchAndDisplayContent(feed.link);
+  });
+  
+  image.addEventListener('click', () => {
+    fetchAndDisplayContent(feed.link);
+  });
+
+  // Function to fetch and display content from the proxy server
+async function fetchAndDisplayContent(url) {
     try {
-        const response = await fetch('https://proxyserver-bice.vercel.app', { // Make sure the endpoint is correct
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*', // CORS header to allow all origins
-            },
-            body: JSON.stringify({ url: url }),
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        if (isRSS) {
-            const data = await response.text(); // Get response as text for RSS parsing
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data, 'application/xml');
-            const items = xmlDoc.getElementsByTagName('item');
-
-            return Array.from(items).map(item => ({
-                title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
-                link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
-                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
-                description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
-                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
-                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
-                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
-                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
-            }));
-        } else {
-            const data = await response.json(); // Get response as JSON for non-RSS
-            console.log('Fetched data:', data); // Debugging statement
-            return data.content;
-        }
+      const response = await fetch('https://proxyserver-bice.vercel.app/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: url }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = await response.json();
+      displayContent(data.content);
     } catch (error) {
-        console.error('Error fetching data:', error);
-        return isRSS ? [] : '<p>Unable to load content.</p>';
+      console.error('Error fetching content:', error);
+      displayContent('<p>Unable to load content.</p>');
     }
-}
+  }
+  
+  // Function to display the content in the HTML page
+  function displayContent(content) {
+    const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = content;
+  
+    // Show the modal
+    const modal = document.getElementById('articleModal');
+    modal.style.display = 'block';
+  
+    // Add event listener to close the modal
+    document.querySelectorAll('.modal .close').forEach((closeBtn) => {
+      closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+    });
+  }
+  
+  // Event listener for the "Add Feed" form submission
+  document.getElementById('addFeedForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const feedUrl = document.getElementById('feedUrl').value;
+    const category = document.getElementById('category').value;
+  
+    if (feedUrl && category) {
+      await fetchAndDisplayContent(feedUrl);
+      // You can also save the feed information to localStorage or update the feed list
+    }
+  });
 
 
     // Function to render the feeds
@@ -62,7 +80,7 @@ async function fetchFromProxy(url, isRSS = false) {
             title.textContent = `${feed.title} - Feed`;
             title.addEventListener('click', async () => {
                 const content = await fetchFromProxy(feed.link);
-                showModal(content);
+                displayContent(content);
             });
 
             const image = document.createElement('img');
@@ -93,11 +111,19 @@ async function fetchFromProxy(url, isRSS = false) {
     }
 
     // Function to show modal with content
-    function showModal(content) {
+    function displayContent(content) {
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = content;
+      
         const modal = document.getElementById('articleModal');
-        document.getElementById('modalContent').innerHTML = content;
         modal.style.display = 'block';
-    }
+      
+        document.querySelectorAll('.modal .close').forEach((closeBtn) => {
+          closeBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+          });
+        });
+      }
 
     // Event listeners for modal close buttons
     document.querySelectorAll('.modal .close').forEach(closeBtn => {
