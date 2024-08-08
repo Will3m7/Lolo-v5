@@ -1,8 +1,6 @@
+import fetch from 'node-fetch';
 document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
-
-// client.mjs
-import fetch from 'node-fetch';
 
 async function getWebContent(url) {
   try {
