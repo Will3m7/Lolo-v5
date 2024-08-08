@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
     fetch('https://proxyserver-bice.vercel.app/')
-    .then(response => response.json())
+    .then(response => response.text())
     .then(data => {
       console.log(data);
     })
