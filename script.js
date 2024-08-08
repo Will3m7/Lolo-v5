@@ -1,6 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
+fetch("https://proxyserver-bice.vercel.app")
+.then(res => res.json())
+.then(data=>
+    console.log(data)
+)
+
 // Function to fetch and parse data using the proxy server
 async function fetchFromProxy(url, isRSS = false) {
     try {
