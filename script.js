@@ -2,14 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
 
-// Function to fetch and parse data using the proxy server
-title.addEventListener('click', async () => {
-    await fetchAndDisplayContent(feed.link);
-  });
-  
-  image.addEventListener('click', () => {
-    fetchAndDisplayContent(feed.link);
-  });
+
 
   // Function to fetch and display content from the proxy server
 async function fetchAndDisplayContent(url) {
