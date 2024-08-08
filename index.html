@@ -1,39 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RSS Feed Reader</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lolo v5 - RSS Feed Reader</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <h1>RSS Feed Reader</h1>
-    <nav>
-      <select id="filterSelect">
-        <!-- Filter options will be dynamically added here -->
-      </select>
-      <form id="addFeedForm">
-        <input type="text" id="feedUrl" placeholder="Enter feed URL">
-        <input type="text" id="category" placeholder="Enter category">
-        <button type="submit">Add Feed</button>
-      </form>
-    </nav>
-  </header>
-
-  <main>
-    <div id="feedsContainer">
-      <!-- Feeds will be dynamically added here -->
+    <header>
+        <h1>Lolo v5 - RSS Feed Reader</h1>
+        <form id="addFeedForm">
+            <input type="text" id="feedUrl" placeholder="Enter RSS feed URL" required>
+            <input type="text" id="category" placeholder="Enter category" required>
+            <button type="submit">Add Feed</button>
+        </form>
+        <select id="filterSelect">
+            <option value="all">All Categories</option>
+        </select>
+    </header>
+    <main role="main">
+        <div id="feedsContainer"></div>
+    </main>
+    <div id="articleModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modalContent"></div>
+        </div>
     </div>
-  </main>
-
-  <div id="articleModal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <div id="modalContent"></div>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
+    <script src="scripts.js"></script>
 </body>
 </html>
