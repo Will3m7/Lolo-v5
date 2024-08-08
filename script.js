@@ -1,48 +1,49 @@
 document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
-    // Function to fetch and parse data using the proxy server
-    async function fetchFromProxy(url, isRSS = false) {
-        try {
-            const response = await fetch('https://proxyserver-bice.vercel.app', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*', // CORS header to allow all origins
-                },
-                body: JSON.stringify({ url: url }),
-            });
+// Function to fetch and parse data using the proxy server
+async function fetchFromProxy(url, isRSS = false) {
+    try {
+        const response = await fetch('https://proxyserver-bice.vercel.app/webparser', { // Make sure the endpoint is correct
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*', // CORS header to allow all origins
+            },
+            body: JSON.stringify({ url: url }),
+        });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            if (isRSS) {
-                const data = await response.text();
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(data, 'application/xml');
-                const items = xmlDoc.getElementsByTagName('item');
-
-                return Array.from(items).map(item => ({
-                    title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
-                    link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
-                    pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
-                    description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
-                    category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
-                    imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
-                    author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
-                    source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
-                }));
-            } else {
-                console.log('Fetched data:', data); // Debugging statement
-                const data = await response.json();
-                return data.content;
-            }
-        } catch (error) {
-            console.error('Error fetching data:', error);
-            return isRSS ? [] : '<p>Unable to load content.</p>';
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
+
+        if (isRSS) {
+            const data = await response.text(); // Get response as text for RSS parsing
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(data, 'application/xml');
+            const items = xmlDoc.getElementsByTagName('item');
+
+            return Array.from(items).map(item => ({
+                title: item.getElementsByTagName('title')[0]?.textContent || 'No title',
+                link: item.getElementsByTagName('link')[0]?.textContent || 'No link',
+                pubDate: item.getElementsByTagName('pubDate')[0]?.textContent || 'No pubDate',
+                description: item.getElementsByTagName('description')[0]?.textContent || 'No description',
+                category: item.getElementsByTagName('category')[0]?.textContent || 'Uncategorized',
+                imageUrl: item.getElementsByTagName('media:content')[0]?.getAttribute('url') || 'No image',
+                author: item.getElementsByTagName('author')[0]?.textContent || 'Unknown',
+                source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
+            }));
+        } else {
+            const data = await response.json(); // Get response as JSON for non-RSS
+            console.log('Fetched data:', data); // Debugging statement
+            return data.content;
+        }
+    } catch (error) {
+        console.error('Error fetching data:', error);
+        return isRSS ? [] : '<p>Unable to load content.</p>';
     }
+}
+
 
     // Function to render the feeds
     function renderFeeds() {
