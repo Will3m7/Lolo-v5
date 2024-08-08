@@ -12,23 +12,29 @@
     </header>
 
     <main>
-        <section id="addFeedSection">
-            <h2>Add New Feed</h2>
+        <section class="add-feed-section">
             <form id="addFeedForm">
-                <input type="url" id="feedUrl" placeholder="Enter RSS feed URL" required>
-                <input type="text" id="category" placeholder="Enter category" required>
+                <label for="feedUrl">Feed URL:</label>
+                <input type="url" id="feedUrl" placeholder="Enter RSS Feed URL" required>
+
+                <label for="category">Category:</label>
+                <input type="text" id="category" placeholder="Enter Category" required>
+
                 <button type="submit">Add Feed</button>
             </form>
         </section>
 
-        <section id="filterSection">
-            <label for="filterSelect">Filter by category:</label>
+        <section class="filter-section">
+            <label for="filterSelect">Filter by Category:</label>
             <select id="filterSelect"></select>
         </section>
 
-        <section id="feedsContainer"></section>
+        <section id="feedsContainer" class="feeds-container">
+            <!-- Feeds will be rendered here -->
+        </section>
     </main>
 
+    <!-- Modal for displaying article content -->
     <div id="articleModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -36,18 +42,6 @@
         </div>
     </div>
 
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Edit Feed</h2>
-            <form id="editFeedForm">
-                <input type="url" id="editFeedUrl" placeholder="Enter new RSS feed URL" required>
-                <input type="text" id="editCategory" placeholder="Enter new category" required>
-                <button type="submit">Update Feed</button>
-            </form>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
+    <script src="scripts.js"></script>
 </body>
 </html>
