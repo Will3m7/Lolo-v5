@@ -1,38 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     let feeds = JSON.parse(localStorage.getItem('feeds')) || [];
 
-async function getWebContent(url) {
-  try {
-    const response = await fetch('https://proxyserver-bice.vercel.app/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Received data from proxy server:', data);
-    return data;
-  } catch (error) {
-    console.error('Error fetching web content:', error);
-    throw error;
-  }
-}
-
-// Example usage
-const url = 'https://www.theverge.com/tech';
-getWebContent(url)
-  .then((data) => {
-    console.log('Web content:', data);
-  })
-  .catch((error) => {
-    console.error('Error:', error);
-  });
 
 // Function to fetch and parse data using the proxy server
 async function fetchFromProxy(url, isRSS = false) {
