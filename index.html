@@ -1,53 +1,39 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RSS Feed Reader</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RSS Feed Reader</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>RSS Feed Reader</h1>
-    </header>
+  <header>
+    <h1>RSS Feed Reader</h1>
+    <nav>
+      <select id="filterSelect">
+        <!-- Filter options will be dynamically added here -->
+      </select>
+      <form id="addFeedForm">
+        <input type="text" id="feedUrl" placeholder="Enter feed URL">
+        <input type="text" id="category" placeholder="Enter category">
+        <button type="submit">Add Feed</button>
+      </form>
+    </nav>
+  </header>
 
-    <main>
-        <section id="addFeedSection">
-            <h2>Add New Feed</h2>
-            <form id="addFeedForm">
-                <input type="url" id="feedUrl" placeholder="Enter RSS feed URL" required>
-                <input type="text" id="category" placeholder="Enter category" required>
-                <button type="submit">Add Feed</button>
-            </form>
-        </section>
-
-        <section id="filterSection">
-            <label for="filterSelect">Filter by category:</label>
-            <select id="filterSelect"></select>
-        </section>
-
-        <section id="feedsContainer"></section>
-    </main>
-
-    <div id="articleModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <div id="modalContent"></div>
-        </div>
+  <main>
+    <div id="feedsContainer">
+      <!-- Feeds will be dynamically added here -->
     </div>
+  </main>
 
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Edit Feed</h2>
-            <form id="editFeedForm">
-                <input type="url" id="editFeedUrl" placeholder="Enter new RSS feed URL" required>
-                <input type="text" id="editCategory" placeholder="Enter new category" required>
-                <button type="submit">Update Feed</button>
-            </form>
-        </div>
+  <div id="articleModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <div id="modalContent"></div>
     </div>
+  </div>
 
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
