@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     source: item.getElementsByTagName('source')[0]?.getAttribute('url') || 'Unknown',
                 }));
             } else {
+                console.log('Fetched data:', data); // Debugging statement
                 const data = await response.json();
                 return data.content;
             }
